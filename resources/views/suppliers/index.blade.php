@@ -5,7 +5,9 @@
 </head>
 <body>
     <h1>Suppliers</h1>
-    <a href="{{ route('suppliers.create') }}">Add New Supplier</a>
+    @if (Auth::user()->role === 'admin')
+        <a href="{{ route('suppliers.create') }}">Add New Supplier</a>
+    @endif
 
     <table border="1" cellpadding="10" cellspacing="0">
         <thead>
@@ -25,11 +27,13 @@
                 <td>{{ $supplier->phone_number }}</td>
                 <td>{{ $supplier->address }}</td>
                 <td>
-                    <a href="{{ route('suppliers.edit', $supplier->id) }}">Edit</a> |
-                    <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" style="display:inline;">
-                        @csrf @method('DELETE')
-                        <button onclick="return confirm('Delete this supplier?')">Delete</button>
-                    </form>
+                    @if (Auth::user()->role === 'admin')
+                        <a href="{{ route('suppliers.edit', $supplier->id) }}">Edit</a> |
+                        <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" style="display:inline;">
+                            @csrf @method('DELETE')
+                            <button onclick="return confirm('Delete this supplier?')">Delete</button>
+                        </form>
+                    @endif
                 </td>
             </tr>
         @endforeach

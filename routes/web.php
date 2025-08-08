@@ -36,7 +36,7 @@ Route::post('/register', function (Request $request) {
         'gender' => $request->gender,
         'city_code' => 1,      // default
         'role' => 'user'       // default
-    ])->name('register');
+    ]);
 
 
     Auth::login($user);
@@ -58,6 +58,11 @@ Route::post('/login', function (Request $request) {
     }
 
     Auth::login($user);
+
+    if ($user->role === 'admin') {
+        return redirect()->route('dashboard');
+    }
+
     $toko = \App\Models\Toko::where('owner_id', $user->id)->first();
     return redirect($toko ? '/products' : '/toko-check');
 });
@@ -66,9 +71,10 @@ Route::get('/toko-check', function () {
     return view('tokos.check');
 })->middleware('auth');
 
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::view('/', 'welcome')->name('welcome');
 
-Route::middleware('role:admin')->group(function () {
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('users', UserController::class);
     Route::resource('tokos', TokoController::class);
     // Admins can create, update, and delete suppliers
