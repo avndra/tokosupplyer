@@ -18,12 +18,6 @@ Route::post('/logout', function () {
     return redirect('/login')->with('success', 'You have been logged out.');
 })->name('logout')->middleware('auth');
 
-
-Route::post('/logout', function () {
-    Auth::logout();
-    return redirect('/login');
-})->name('logout');
-
 Route::view('/login', 'auth.login')->name('login');
 Route::view('/register', 'auth.register')->name('register');
 
@@ -77,12 +71,15 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::middleware('role:admin')->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('tokos', TokoController::class);
-    Route::resource('suppliers', SupplierController::class);
-
+    // Admins can create, update, and delete suppliers
+    Route::resource('suppliers', SupplierController::class)->except(['index', 'show']);
 });
 
 // Orders
 Route::resource('orders', OrderController::class);
+
+// All authenticated users can view suppliers
+Route::resource('suppliers', SupplierController::class)->only(['index', 'show'])->middleware('auth');
 
 // Products
 Route::resource('products', ProductController::class);
@@ -93,9 +90,3 @@ Route::get('/my-products', [ProductController::class, 'myProducts'])->name('prod
 Route::get('/orders/{order}/items', [OrderedItemController::class, 'index'])->name('orders.items');
 Route::get('/orders/{order}/items/create', [OrderedItemController::class, 'create'])->name('orders.items.create');
 Route::post('/ordered-items', [OrderedItemController::class, 'store'])->name('ordered-items.store');
-
-// Toko CRUD
-Route::resource('tokos', TokoController::class);
-
-// Supplier CRUD
-Route::resource('suppliers', SupplierController::class);
