@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
     Route::get('/my-products', [ProductController::class, 'myProducts']);
     Route::apiResource('orders', OrderController::class);
     Route::apiResource('orders.items', OrderedItemController::class)->scoped();
-    Route::apiResource('suppliers', SupplierController::class);
+    // Suppliers: Read-only for users, full access for admins
+    Route::apiResource('suppliers', SupplierController::class)->only(['index', 'show']);
+    Route::apiResource('suppliers', SupplierController::class)->except(['index', 'show'])->middleware('role:admin');
     Route::apiResource('tokos', TokoController::class);
 });

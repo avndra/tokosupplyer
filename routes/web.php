@@ -93,3 +93,9 @@ Route::get('/my-products', [ProductController::class, 'myProducts'])->name('prod
 Route::get('/orders/{order}/items', [OrderedItemController::class, 'index'])->name('orders.items');
 Route::get('/orders/{order}/items/create', [OrderedItemController::class, 'create'])->name('orders.items.create');
 Route::post('/ordered-items', [OrderedItemController::class, 'store'])->name('ordered-items.store');
+
+// Toko CRUD
+Route::resource('tokos', TokoController::class);
+
+// Supplier CRUD
+Route::resource('suppliers', SupplierController::class);
