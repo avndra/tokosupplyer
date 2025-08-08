@@ -80,7 +80,7 @@ The seeder creates the following users. The password for all of them is `passwor
 
 ---
 
-### Website
+### Web Interface (Browser)
 
 1.  **Navigate to the Welcome Page**: Open your project in the browser. You should see a welcome page with "Login" and "Register" links.
 2.  **Login as Admin**:
@@ -96,46 +96,132 @@ The seeder creates the following users. The password for all of them is `passwor
 
 ---
 
-### API (Using Postman)
+### API Testing (Postman Beginner's Guide)
 
-#### 1. Get Authentication Token
+This guide will walk you through testing all API endpoints using Postman.
 
-To interact with the protected API routes, you first need to get an authentication token.
+#### A. Initial Setup (First Time Only)
 
+1.  **Create an Environment**: In Postman, go to the "Environments" tab and click `+`. Name it "MiniStore Dev". Add a variable named `baseUrl` and set its value to your local development URL (e.g., `http://ministore.test`).
+
+2.  **Create a Collection**: Go to the "Collections" tab and click `+`. Name it "MiniStore API". All your requests will be saved here.
+
+3.  **Select Environment**: In the top-right corner of Postman, make sure your "MiniStore Dev" environment is selected.
+
+#### B. Authentication
+
+First, we need to log in to get authentication tokens.
+
+**1. Login as Admin**
+-   Create a new request in your collection named "Login Admin".
 -   **Method**: `POST`
--   **URL**: `http://<your-app-url>/api/login`
--   **Body** (form-data or x-www-form-urlencoded):
-    -   `email`: `admin@example.com` (or a user email)
+-   **URL**: `{{baseUrl}}/api/login`
+-   **Body** tab -> select `form`:
+    -   `email`: `admin@example.com`
     -   `password`: `password`
+-   **Tests** tab: Add the following script. This will automatically save the token to your environment variables!
+    ```javascript
+    var jsonData = pm.response.json();
+    pm.environment.set("admin_token", jsonData.token);
+    ```
+-   Click **Send**. You should get a `200 OK` response with a token. The token is now saved as `{{admin_token}}`.
 
-The response will contain a `token` which you should copy.
+**2. Login as User**
+-   Duplicate the "Login Admin" request and rename it "Login User".
+-   Change the `email` in the Body to `john@example.com`.
+-   In the **Tests** tab, change the script to save a different variable:
+    ```javascript
+    var jsonData = pm.response.json();
+    pm.environment.set("user_token", jsonData.token);
+    ```
+-   Click **Send**. This will save the user's token as `{{user_token}}`.
 
-#### 2. Access Protected Routes
-
-Now you can use this token to access protected endpoints by adding it as a Bearer Token in the Authorization header.
-
+**3. Get Current User (`/me`)**
+-   Create a new request named "Get Me".
 -   **Method**: `GET`
--   **URL**: `http://<your-app-url>/api/me`
--   **Headers**:
-    -   `Accept`: `application/json`
-    -   `Authorization`: `Bearer <your-copied-token>`
+-   **URL**: `{{baseUrl}}/api/me`
+-   **Authorization** tab:
+    -   Type: `Bearer Token`
+    -   Token: `{{token}}`
+-   Click **Send**. It should return the user's details.
 
-This will return the details of the currently authenticated user.
+**4. Logout**
+-   Create a new request named "Logout".
+-   **Method**: `POST`
+-   **URL**: `{{baseUrl}}/api/logout`
+-   **Authorization** tab:
+    -   Type: `Bearer Token`
+    -   Token: `{{token}}`
+-   Click **Send**. You will get a "Logged out" message. The token `{{admin_token}}` is now invalid. If you try to use it again on the "Get Me" request, you will get an "Unauthenticated" error.
 
-#### 3. Test Role-Based Routes
+#### C. Testing API Resources
 
-You can easily test the admin-only routes by getting a token for an admin and a regular user and trying to access the same endpoint.
+Here is the pattern for testing a typical resource like **Products**. You can apply the same pattern for **Orders** and **Tokos**.
 
-**Example: Creating a Supplier**
+**1. List Products**
+-   **Method**: `GET`
+-   **URL**: `{{baseUrl}}/api/products`
+-   **Authorization**: Bearer Token `{{token}}`
 
-1.  **Get an admin token** using `admin@example.com`.
-2.  Make a `POST` request to `http://<your-app-url>/api/suppliers` with the admin's bearer token and valid supplier data.
-    -   **Result**: You should receive a `201 Created` response.
-3.  **Get a user token** using `john@example.com`.
-4.  Make the same `POST` request to `http://<your-app-url>/api/suppliers` with the user's bearer token.
-    -   **Result**: You should receive a `403 Forbidden` response, as only admins can create suppliers.
+**2. Create a Product**
+-   **Method**: `POST`
+-   **URL**: `{{baseUrl}}/api/products`
+-   **Authorization**: Bearer Token `{{token}}`
+-   **Body** tab -> select `raw` and `JSON`:
+    ```json
+    {
+        "name": "New API Product",
+        "description": "A product created from the API",
+        "price": 19.99,
+        "stock": 100,
+        "toko_id": 1,
+        "supplier_id": 1
+    }
+    ```
+> **Note**: After creating a product, note its `id` from the response for the next steps.
 
-**Example: Listing Suppliers**
+**3. Get a Single Product**
+-   **Method**: `GET`
+-   **URL**: `{{baseUrl}}/api/products/1` (Replace `1` with the ID of the product you created).
+-   **Authorization**: Bearer Token `{{token}}`
 
-1.  Make a `GET` request to `http://<your-app-url>/api/suppliers` using either the admin's or the user's token.
-    -   **Result**: In both cases, you should receive a `200 OK` response with the list of suppliers, as all authenticated users are allowed to view them.
+**4. Update a Product**
+-   **Method**: `PUT`
+-   **URL**: `{{baseUrl}}/api/products/1` (Use the ID from above)
+-   **Authorization**: Bearer Token `{{token}}`
+-   **Body** tab -> select `raw` and `JSON`:
+    ```json
+    {
+        "name": "Updated API Product",
+        "price": 25.50
+    }
+    ```
+
+**5. Delete a Product**
+-   **Method**: `DELETE`
+-   **URL**: `{{baseUrl}}/api/products/1` (Use the ID from above)
+-   **Authorization**: Bearer Token `{{admin/user_token}}`
+
+#### D. Testing Role-Based Permissions (Suppliers)
+
+This shows how to verify that only admins can modify suppliers.
+
+**1. Test with a User Token**
+-   Create a request "Create Supplier (as User)".
+-   **Method**: `POST`
+-   **URL**: `{{baseUrl}}/api/suppliers`
+-   **Authorization**: Bearer Token `{{user_token}}`
+-   **Body** (raw/JSON): `{ "name": "Test Supplier", "email": "supplier@test.com" }`
+-   Click **Send**. You should receive a **`403 Forbidden`** error, because regular users cannot create suppliers.
+
+**2. Test with an Admin Token**
+-   Duplicate the request above and name it "Create Supplier (as Admin)".
+-   Change the **Authorization** token to `{{admin_token}}`.
+-   Click **Send**. You should receive a **`201 Created`** response. This confirms your security is working!
+
+**3. Listing Suppliers (as any user)**
+-   Create a request "List Suppliers".
+-   **Method**: `GET`
+-   **URL**: `{{baseUrl}}/api/suppliers`
+-   **Authorization**: Bearer Token `{{user_token}}` (or `{{admin_token}}`)
+-   Click **Send**. This should succeed with a **`200 OK`** for either user.
