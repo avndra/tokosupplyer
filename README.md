@@ -59,3 +59,83 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+---
+
+## How to Use
+
+First, make sure you have seeded the database to create the default users. If you haven't, run:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+### Default Users
+
+The seeder creates the following users. The password for all of them is `password`.
+
+- **Admin**: `admin@example.com`
+- **User 1**: `john@example.com`
+- **User 2**: `jane@example.com`
+
+---
+
+### Website
+
+1.  **Navigate to the Welcome Page**: Open your project in the browser. You should see a welcome page with "Login" and "Register" links.
+2.  **Login as Admin**:
+    -   Click "Login".
+    -   Use the credentials: `admin@example.com` / `password`.
+    -   You will be redirected to the `/dashboard`.
+    -   From the dashboard, you can navigate to `/suppliers`. You will see "Add", "Edit", and "Delete" controls.
+3.  **Login as User**:
+    -   Log out, then click "Login" again.
+    -   Use the credentials: `john@example.com` / `password`.
+    -   You will be redirected to `/toko-check` (since this user doesn't have a store yet) or `/products`.
+    -   Navigate to `/suppliers`. You will be able to see the list of suppliers, but the "Add", "Edit", and "Delete" controls will not be visible.
+
+---
+
+### API (Using Postman)
+
+#### 1. Get Authentication Token
+
+To interact with the protected API routes, you first need to get an authentication token.
+
+-   **Method**: `POST`
+-   **URL**: `http://<your-app-url>/api/login`
+-   **Body** (form-data or x-www-form-urlencoded):
+    -   `email`: `admin@example.com` (or a user email)
+    -   `password`: `password`
+
+The response will contain a `token` which you should copy.
+
+#### 2. Access Protected Routes
+
+Now you can use this token to access protected endpoints by adding it as a Bearer Token in the Authorization header.
+
+-   **Method**: `GET`
+-   **URL**: `http://<your-app-url>/api/me`
+-   **Headers**:
+    -   `Accept`: `application/json`
+    -   `Authorization`: `Bearer <your-copied-token>`
+
+This will return the details of the currently authenticated user.
+
+#### 3. Test Role-Based Routes
+
+You can easily test the admin-only routes by getting a token for an admin and a regular user and trying to access the same endpoint.
+
+**Example: Creating a Supplier**
+
+1.  **Get an admin token** using `admin@example.com`.
+2.  Make a `POST` request to `http://<your-app-url>/api/suppliers` with the admin's bearer token and valid supplier data.
+    -   **Result**: You should receive a `201 Created` response.
+3.  **Get a user token** using `john@example.com`.
+4.  Make the same `POST` request to `http://<your-app-url>/api/suppliers` with the user's bearer token.
+    -   **Result**: You should receive a `403 Forbidden` response, as only admins can create suppliers.
+
+**Example: Listing Suppliers**
+
+1.  Make a `GET` request to `http://<your-app-url>/api/suppliers` using either the admin's or the user's token.
+    -   **Result**: In both cases, you should receive a `200 OK` response with the list of suppliers, as all authenticated users are allowed to view them.
